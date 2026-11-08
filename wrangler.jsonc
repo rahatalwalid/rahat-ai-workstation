@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "rahat-ai",
+  "name": "rahat-ai-workstation",
   "main": "src/worker.js",
   "compatibility_date": "2025-11-01",
   "assets": {
