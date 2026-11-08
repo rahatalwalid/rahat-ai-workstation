@@ -1,0 +1,95 @@
+# .github/workflows/unpack.yml
+# ---------------------------------------------------------------
+# Auto-unpack a zip you upload to this repo (GitHub web UI drag & drop).
+#
+# How to use:
+#   1. Add THIS file first:  repo → Add file → Create new file →
+#      path ".github/workflows/unpack.yml" → paste → Commit.
+#   2. Then: Add file → Upload files → rahat-ai-workstation.zip → Commit.
+#   3. The workflow runs, unzips it into the repo root, deletes the zip
+#      and commits the real project files automatically.
+#
+# It is loop-safe (removes the zip, [skip ci]) and owner-only
+# (runs only when the repo owner pushes).
+# ---------------------------------------------------------------
+
+name: Unpack uploaded zip
+
+on:
+  push:
+    paths:
+      - "**.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unpack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unpack:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Locate the uploaded zip
+        id: zip
+        run: |
+          set -euo pipefail
+          ZIP=""
+          if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            ZIP=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -i '\.zip$' | head -n1 || true)
+          fi
+          if [ -z "${ZIP}" ]; then
+            ZIP=$(find . -path ./.git -prune -o -type f -iname '*.zip' -print | head -n1 || true)
+          fi
+          if [ -z "${ZIP}" ]; then
+            echo "::notice::No zip file found in this push — nothing to unpack."
+            exit 0
+          fi
+          echo "zip=${ZIP}" >> "$GITHUB_OUTPUT"
+          echo "Unpacking: ${ZIP}"
+
+      - name: Unzip into repo root
+        if: steps.zip.outputs.zip != ''
+        run: |
+          set -euo pipefail
+          ZIP="${{ steps.zip.outputs.zip }}"
+          rm -rf /tmp/unpack && mkdir -p /tmp/unpack
+          unzip -q -o "${ZIP}" -d /tmp/unpack
+
+          # If the zip contains a single top-level folder, hoist its
+          # contents (including dotfiles) to the repo root so that
+          # wrangler.jsonc / src / public sit at the root.
+          shopt -s dotglob nullglob
+          entries=(/tmp/unpack/*)
+          if [ ${#entries[@]} -eq 1 ] && [ -d "${entries[0]}" ]; then
+            echo "Single top-level folder detected — hoisting to repo root"
+            rsync -a "${entries[0]}/" ./
+          else
+            echo "Multiple top-level entries — copying as-is"
+            rsync -a /tmp/unpack/ ./
+          fi
+
+          # Remove the zip so it does not re-trigger this workflow
+          rm -f "${ZIP}"
+
+      - name: Commit unpacked files
+        if: steps.zip.outputs.zip != ''
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "::notice::Nothing to commit — already unpacked."
+            exit 0
+          fi
+          git commit -m "Unpack uploaded project zip [skip ci]"
+          git push
