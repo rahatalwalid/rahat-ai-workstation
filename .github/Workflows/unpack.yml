@@ -19,3 +19,4 @@ jobs:
           git add -A
           git commit -m "Unpack Rahat DeSecret v0.4 (1)" || echo "Nothing to commit"
           git push
+workflow_dispatch:
