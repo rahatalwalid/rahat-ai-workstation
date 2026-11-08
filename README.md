@@ -14,7 +14,37 @@ A **private, single-owner AI workstation** — your own Grok/Claude-style assist
 - **🗄️ Your data, your accounts** — every chat lives in **your** D1 database; every file in **your** private B2 bucket (served via short-lived presigned URLs).
 - **💸 Free-tier friendly** — Cloudflare Workers free plan, D1 free tier, B2 free tier (10 GB storage). Only OpenRouter usage costs money, and you can pick `:free` models.
 
-> **About "video editing"**: like Grok and Claude, this workstation **analyzes and discusses video** (upload ≤ 30 MB, ask questions about it — works best with Gemini models). Frame-accurate cutting/encoding isn't possible on Cloudflare's serverless platform (no ffmpeg); trim your clips with any local tool first, then upload.
+> **About "video editing"**: like Grok and Claude, this workstation **analyzes and discusses video** (upload ≤ 30 MB, ask questions about it — works best with Gemini models). And since v2.1 it can also **make and edit videos** — see the Video Studio below (all rendering happens in your browser, because Cloudflare's serverless platform has no ffmpeg).
+
+## What's new in v2.2 — parity with Claude & GLM (researched)
+
+A feature audit against **Claude** (claude.ai) and **Z.ai / GLM-5.3-Flash** found four tools both products share that the workstation lacked. All four are now built:
+
+- **🔬 Deep Research mode** — toggle it in the chat header (next to ⚡ Auto). The agent gets up to 12 tool rounds (instead of 6) and instructions to cover 3–5 independent sources, cross-check conflicting claims and cite every key claim with links — the equivalent of Claude's *Research* and Z.ai's *Deep Think*. Slower, but much deeper.
+- **🎙 Voice input** — a mic button appears in the composer (browsers with speech recognition; Chrome/Android/desktop Chrome). Talk, and your words are typed into the prompt — like Claude's voice mode.
+- **🐍 Python Lab** — Claude and Z.ai both ship a Python sandbox; Cloudflare's server can't run Python, so this runs **real Python in the browser** (Pyodide/WebAssembly, downloaded once ~10 MB from a CDN). Paste code the agent wrote and press ▶ Run — prints, math, JSON, no compiling. The agent now knows to deliver Python as runnable code artifacts.
+- **⬇ Word export** — artifacts (reports, markdown, code) can now be downloaded as `.doc` files that open in Word, Google Docs and WPS — the lightweight version of Claude's file creation, since the serverless platform can't build real `.docx/.pptx/.xlsx`.
+
+## What's new in v2.1 — the Video Studio
+
+- **🎬 Motion Graphics maker** — six templates (intro title, lower third, logo reveal, promo card, countdown, outro/subscribe): type your text, pick colors/size/duration, preview live, then **render a real video file** (MP4 on most browsers, WebM otherwise) — downloaded instantly, optional background music.
+- **📝 2D Animation programs** — the agent has a new `make_video_program` tool: ask in chat (*"make a 2D animation of a rocket launching"*) and it writes a JSON animation program as an artifact; open it and press Render. You can also hand-edit the JSON (canvas scenes, keyframes with easing).
+- **✂️ Raw video editing** — load several clips, **trim** start/end, **reorder**, mute, add music, and export the cut as one video. Everything renders client-side on canvas + MediaRecorder (no server ffmpeg needed). Export runs in real time, so a 30-second cut takes ~30 seconds.
+
+## What's new in v2 — the autonomous agent
+
+The workstation is now a real agent with a tool belt (Claude/GLM-style abilities), and **you never pick models again**:
+
+- **⚡ Auto model routing** — chat requests go to `openrouter/auto`: OpenRouter reads the whole conversation and picks the best available model itself. Provider **fallbacks** (`gemini-2.5-flash` → `gpt-5-mini` → `deepseek-v3.1`) transparently retry when a model is rate-limited or down — no more hitting one model's limits.
+- **🔍 Web search** — the agent searches the live web (OpenRouter `web` plugin) and cites sources for anything current.
+- **🌐 Read pages** — it fetches and reads any URL before commenting on it.
+- **⚙️ Run code** — a JavaScript sandbox for exact math, data crunching and logic checks (sync JS, no network).
+- **🎨 Generate images from chat** — "make me a logo…" works right in the conversation; the image appears in the bubble and is saved.
+- **🧩 Artifacts** — long-form work (full runnable websites, reports, code files) is delivered as artifacts: live HTML preview, download, and **one-tap PDF export** via the print dialog. Everything the agent builds is listed in the **Artifacts** view.
+- **🧠 Permanent memory** — say "remember that…" in chat; durable facts are stored and injected into every future conversation. Manage them in Settings.
+- **🔌 Connections** — paste an API token for **Netlify, Vercel, or any REST API** (Connections view) and then just ask: *"deploy my website to Netlify"*, *"check my Vercel deployments"*. The agent calls the API on your behalf via `api_request`. Tokens live only in your private D1.
+- **🔊 Read aloud** — every reply has a speak button (browser TTS).
+- **Live activity timeline** — you see each tool call as it happens (search → read page → build artifact) and in chat history afterwards.
 
 ## Architecture
 
@@ -112,10 +142,14 @@ Workers dashboard → your worker → **Settings → Domains & Routes → Add** 
 
 | Where | What |
 | --- | --- |
-| **Chats** | Stream answers, attach files with 📎, switch agent/model in the header |
+| **Chats** | Stream answers, attach files with 📎, switch agent in the header, toggle 🔬 **Research** for deep multi-source answers, tap 🎙 to dictate. Model is always Auto. |
+| **Python Lab** | Paste any Python and press ▶ Run — real Python in your browser (Pyodide), variables persist between runs. |
 | **Image Studio** | Prompt → generate. Attach a **reference image** to edit/transform an existing picture. Download or “Save to library” (stores it in B2). |
+| **Video Studio** | ✨ Motion graphics templates, 📝 2D animation programs (ask the agent in chat!), ✂️ trim/reorder/mute your raw clips and export with music. |
+| **Artifacts** | Everything the agent built: websites (live preview), reports, code, images, video programs. Open → view, ⬇ download, 🖨 export PDF. |
+| **Connections** | Add Netlify / Vercel / any REST API (name + base URL + `Bearer <token>` auth header). Then ask the agent to use it in chat. |
 | **Agents** | Create unlimited personas; tick “default” to make one the standard |
-| **Settings** | Default chat + image model, storage usage stats |
+| **Settings** | Usage stats + the agent's permanent memory list |
 
 ## Free-tier limits to know
 
@@ -130,11 +164,15 @@ Workers dashboard → your worker → **Settings → Domains & Routes → Add** 
 
 ## Troubleshooting
 
-- **`B2 authorize failed`** — wrong `B2_KEY_ID`/`B2_APP_KEY`, or the key wasn't scoped to the bucket.
+- **`B2 authorize failed`** — the error now tells you which case it is: *missing variables* (add `B2_KEY_ID`/`B2_APP_KEY`/`B2_BUCKET_NAME` in Worker → Settings → Variables and Secrets) or a *rejected key pair* (keyID and applicationKey must come from the same Application Key; re-create the key if you lost the original; no spaces/quotes when pasting).
 - **`Upload did not reach storage`** — the presigned PUT failed; make sure the app key has Write access and hasn't expired (re-create it without an expiry).
 - **Setup page already gone / want to reset the owner** — you can't create a second account by design. To start over: `npx wrangler d1 execute rahat-ai-db --remote --command "DELETE FROM users; DELETE FROM sessions;"` (chats stay).
-- **402 from image generation** — your OpenRouter account needs credit for the chosen image model; try a different one in the Studio.
-- **Model not in the list** — the list loads live from OpenRouter; you can also type any model ID into an agent's "Model" field.
+- **402 from OpenRouter** — image generation and web search consume credit on your OpenRouter account; add credit at openrouter.ai/credits.
+- **A tool fails with "Connection … not found"** — add the service in Connections first (exact name), then ask again.
+- **`refusing to allow a GitHub App to create or update workflow … without 'workflows' permission`** — the zip contained `.github/workflows/unpack.yml`, and GitHub never lets an Action's own token push workflow-file changes. Fix: upload a zip built **without** the `.github` folder (v2.1 zips already exclude it; the unpack script also strips `.github` on its side). Nothing else to change.
+- **Upgrading from v1 / v2.0** — nothing to do: new tables (artifacts, memories, connections), the `tool_log` column and the v2.1 `video-program` artifact type are created/migrated automatically on the first request after deploy.
+- **Video Studio renders nothing / no video file** — your browser lacks MediaRecorder canvas capture (rare). Use Chrome/Edge/Safari 16+; on Android Chrome the output is WebM, on most desktops MP4.
+- **Rendered video has no audio** — check the clip isn't muted and music was selected *before* pressing Render; browser security requires the sound sources to be picked during the same user interaction.
 
 ## License
 

@@ -1,9 +1,9 @@
 {
   "name": "rahat-ai-workstation",
-  "version": "1.0.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
-  "description": "Private AI workstation for Rahat — chat, image studio, agents. Cloudflare Workers + D1 + Backblaze B2 + OpenRouter.",
+  "description": "Private AI workstation v2.1 for Rahat — autonomous agent (web search, code, images, video studio, artifacts, memory, API connections) with auto model routing. Cloudflare Workers + D1 + Backblaze B2 + OpenRouter.",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
