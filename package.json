@@ -1,0 +1,16 @@
+{
+  "name": "rahat-ai-workstation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Private AI workstation for Rahat — chat, image studio, agents. Cloudflare Workers + D1 + Backblaze B2 + OpenRouter.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute rahat-ai-db --remote --file=./schema.sql",
+    "db:init:local": "wrangler d1 execute rahat-ai-db --local --file=./schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

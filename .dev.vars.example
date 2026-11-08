@@ -1,0 +1,15 @@
+# Copy this file to `.dev.vars` for local development (`npm run dev`).
+# In production, set these with:  npx wrangler secret put <NAME>
+
+# Your OpenRouter key (https://openrouter.ai/settings/keys)
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Backblaze B2 — create an Application Key limited to your private bucket
+# (https://secure.backblaze.com/app_keys.htm)
+B2_KEY_ID=your_key_id
+B2_APP_KEY=your_application_key
+B2_BUCKET_NAME=my-private-bucket
+
+# Optional: a code required on the one-time setup page, so nobody else
+# can claim the owner account if they find your URL first.
+SETUP_CODE=

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rahat AI — Private Workstation</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👑</text></svg>" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+  <!-- ============ AUTH ============ -->
+  <div id="auth-view" class="hidden">
+    <div class="auth-card">
+      <div class="auth-logo">👑</div>
+      <h1>Rahat AI</h1>
+      <p class="auth-sub">Private AI workstation — owner access only</p>
+
+      <form id="setup-form" class="hidden" autocomplete="off">
+        <h2>One-time setup</h2>
+        <p class="hint">Create the owner account. Nobody else will be able to use this workstation.</p>
+        <label>Name <input id="su-name" value="Rahat" required maxlength="80" /></label>
+        <label>Email <input id="su-email" type="email" required /></label>
+        <label>Password <input id="su-pass" type="password" minlength="8" required placeholder="At least 8 characters" /></label>
+        <label id="su-code-row" class="hidden">Setup code <input id="su-code" type="password" /></label>
+        <button class="btn primary w100" type="submit">Create account</button>
+        <div class="form-error" id="su-error"></div>
+      </form>
+
+      <form id="login-form" class="hidden" autocomplete="off">
+        <h2>Welcome back</h2>
+        <label>Email <input id="li-email" type="email" required /></label>
+        <label>Password <input id="li-pass" type="password" required /></label>
+        <button class="btn primary w100" type="submit">Log in</button>
+        <div class="form-error" id="li-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ APP ============ -->
+  <div id="app-view" class="hidden">
+    <aside id="sidebar">
+      <div class="side-scroll">
+        <div class="brand"><span>👑</span> Rahat AI</div>
+        <button id="btn-new-chat" class="btn primary w100">＋ New chat</button>
+        <nav class="side-nav">
+          <button class="side-link active" data-view="chat">💬 <span>Chats</span></button>
+          <button class="side-link" data-view="images">🎨 <span>Image Studio</span></button>
+          <button class="side-link" data-view="agents">🤖 <span>Agents</span></button>
+          <button class="side-link" data-view="settings">⚙️ <span>Settings</span></button>
+        </nav>
+        <div class="conv-label">Recent</div>
+        <div id="conv-list"></div>
+      </div>
+      <div class="side-footer">
+        <div class="whoami">
+          <div class="avatar">R</div>
+          <div>
+            <div id="whoami-name">Rahat</div>
+            <div class="muted small">Owner</div>
+          </div>
+        </div>
+        <button id="btn-logout" class="btn ghost small">Log out</button>
+      </div>
+    </aside>
+
+    <div id="scrim"></div>
+    <main id="main">
+      <button id="btn-menu" title="Menu">☰</button>
+
+      <!-- ======== CHAT ======== -->
+      <section id="view-chat" class="view">
+        <header class="chat-head">
+          <div id="chat-title" class="chat-title">New chat</div>
+          <div class="chat-head-controls">
+            <select id="agent-select" title="Agent (persona)"></select>
+            <select id="model-select" title="Model"></select>
+          </div>
+        </header>
+
+        <div id="messages">
+          <div class="empty-state">
+            <div class="empty-logo">👑</div>
+            <h2>What are we working on, Rahat?</h2>
+            <p>Ask anything — attach PDFs, images, audio or video, or switch agents from the header.</p>
+          </div>
+        </div>
+
+        <div class="composer-wrap">
+          <div id="attach-chips" class="chips"></div>
+          <div class="composer">
+            <button id="btn-attach" class="icon-btn" title="Attach file">📎</button>
+            <input type="file" id="file-input" multiple class="hidden" accept="image/*,application/pdf,audio/*,video/*" />
+            <textarea id="prompt" rows="1" placeholder="Message Rahat AI…"></textarea>
+            <button id="btn-send" class="btn primary" title="Send">➤</button>
+          </div>
+          <div class="composer-hint">Images ≤ 10 MB · PDF / audio / video ≤ 30 MB · Enter to send · Shift+Enter for a new line</div>
+        </div>
+      </section>
+
+      <!-- ======== IMAGE STUDIO ======== -->
+      <section id="view-images" class="view hidden">
+        <header class="chat-head"><div class="chat-title">🎨 Image Studio</div></header>
+        <div class="studio">
+          <div class="studio-panel">
+            <label>Prompt
+              <textarea id="img-prompt" rows="3" placeholder="Describe the image — or describe the edit when using a reference image"></textarea>
+            </label>
+            <div class="row2">
+              <label>Model <select id="img-model"></select></label>
+              <label>Aspect ratio
+                <select id="img-ratio">
+                  <option value="auto">Auto</option>
+                  <option value="1:1">1:1</option>
+                  <option value="16:9">16:9</option>
+                  <option value="9:16">9:16</option>
+                  <option value="4:3">4:3</option>
+                  <option value="3:4">3:4</option>
+                </select>
+              </label>
+            </div>
+            <div class="row2">
+              <label>Resolution
+                <select id="img-res">
+                  <option value="1K">1K</option>
+                  <option value="1.5K">1.5K</option>
+                  <option value="2K">2K</option>
+                  <option value="4K">4K</option>
+                </select>
+              </label>
+              <label>Reference image (for editing)
+                <div class="ref-row">
+                  <button id="btn-ref" class="btn ghost" type="button">＋ Choose image</button>
+                  <input type="file" id="ref-input" class="hidden" accept="image/*" />
+                  <img id="ref-thumb" class="hidden" alt="reference" />
+                  <button id="btn-ref-clear" class="btn ghost small hidden" type="button">✕</button>
+                </div>
+              </label>
+            </div>
+            <button id="btn-generate" class="btn primary w100">✨ Generate</button>
+            <div id="img-status" class="muted small"></div>
+          </div>
+          <div class="studio-gallery" id="img-gallery">
+            <div class="empty-state small">
+              <div class="empty-logo">🎨</div>
+              <p>Generated images appear here. Use a reference image to edit an existing picture.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== AGENTS ======== -->
+      <section id="view-agents" class="view hidden">
+        <header class="chat-head"><div class="chat-title">🤖 Agents</div></header>
+        <div class="agents">
+          <div id="agent-list" class="agent-list"></div>
+          <form id="agent-form" class="agent-form">
+            <h3 id="agent-form-title">New agent</h3>
+            <input type="hidden" id="ag-id" />
+            <div class="row2">
+              <label>Name <input id="ag-name" required maxlength="80" placeholder="e.g. Legal Advisor" /></label>
+              <label>Emoji <input id="ag-emoji" maxlength="8" placeholder="⚖️" /></label>
+            </div>
+            <label>Description <input id="ag-desc" maxlength="200" placeholder="What does this agent do?" /></label>
+            <label>System prompt
+              <textarea id="ag-prompt" rows="7" required placeholder="You are … (this defines the agent's personality and rules)"></textarea>
+            </label>
+            <div class="row2">
+              <label>Model (optional) <input id="ag-model" placeholder="Leave empty to use selected model" /></label>
+              <label>Temperature <input id="ag-temp" type="number" min="0" max="2" step="0.1" value="0.7" /></label>
+            </div>
+            <label class="check"><input type="checkbox" id="ag-default" /> Make this the default agent</label>
+            <div class="btn-row">
+              <button class="btn primary" type="submit" id="ag-save">Save agent</button>
+              <button class="btn ghost" type="button" id="ag-reset">Clear</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ======== SETTINGS ======== -->
+      <section id="view-settings" class="view hidden">
+        <header class="chat-head"><div class="chat-title">⚙️ Settings</div></header>
+        <div class="settings">
+          <div class="card">
+            <h3>Defaults</h3>
+            <label>Default chat model <select id="set-model"></select></label>
+            <label>Default image model <select id="set-img-model"></select></label>
+            <button id="btn-save-settings" class="btn primary">Save defaults</button>
+            <div id="settings-msg" class="muted small"></div>
+          </div>
+          <div class="card">
+            <h3>Usage</h3>
+            <div id="stats-grid" class="stats-grid"></div>
+            <p class="muted small">Files are stored in your private Backblaze B2 bucket. Images count toward the 10 MB limit, other files toward 30 MB.</p>
+          </div>
+          <div class="card">
+            <h3>Access</h3>
+            <p class="muted">This workstation is private: only the owner account can log in. For an extra layer, enable
+              <b>Cloudflare Zero Trust → Access</b> in front of your <code>*.workers.dev</code> hostname (free for up to 50 users).</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
