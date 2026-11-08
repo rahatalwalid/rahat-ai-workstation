@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "rahat-ai-db",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+      "database_id": "d053c3c4-2fd3-4ca1-82a7-af2ec82e3844"
     }
   ],
   "observability": {
